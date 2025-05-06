@@ -90,7 +90,7 @@ Data: ${date}`;
 
   const handleGeneratePdf = async () => {
     const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.CourierBold);
+    const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const pageSize: [number, number] = [595, 842]; // A4
     const margin = 50;
     const fontSize = 12;
@@ -174,7 +174,7 @@ Data: ${date}`;
               { label: "Valor do Serviço", name: "fee" },
             ].map(({ label, name, type = "text" }) => (
               <div key={name}>
-                <label className="block text-md font-medium">{label}</label>
+                <label className="block text-md text-gray-800 font-medium">{label}</label>
                 <input
                   type={type}
                   name={name}
