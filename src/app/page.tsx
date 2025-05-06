@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
+import logo from "../../public/logoformapet.jpg";
 import { Pencil, Trash2, Plus, ScrollText } from "lucide-react";
 import { PDFDocument, PDFFont, StandardFonts } from "pdf-lib";
 
@@ -152,17 +154,23 @@ Data: ${date}`;
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <header className="bg-white shadow px-10 py-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-cyan-600">FormaPet - Talita</h1>
+        <Image
+          src={logo}
+          alt="Logo"
+          width={100}
+          height={100}
+        />
+        <h1 className="text-2xl font-bold text-[#009ca6]">FormaPet - Talita</h1>
       </header>
 
       <div className="flex items-start px-20 my-10">
-        <h1 className="text-2xl font-bold">Elaborador de Contratos</h1>
-        <ScrollText className="ml-2 text-blue-500" />
+        <h1 className="text-2xl font-bold text-[#3c0a4a]">Elaborador de Contratos</h1>
+        <ScrollText className="ml-2 text-[#803d7c]" />
       </div>
 
       <div className="min-h-screen bg-gray-100 px-[10vw] py-4 grid grid-cols-1 md:grid-cols-2 gap-10">
         <div className="bg-white p-6 rounded-xl shadow-lg h-full flex flex-col">
-          <h2 className="text-xl font-bold mb-4">Dados do Contrato</h2>
+          <h2 className="text-xl font-bold mb-4 text-[#009ca6]">Dados do Contrato</h2>
           <div className="space-y-3">
             {[
               { label: "Nome do Contratante", name: "ownerName" },
@@ -174,35 +182,35 @@ Data: ${date}`;
               { label: "Valor do Serviço", name: "fee" },
             ].map(({ label, name, type = "text" }) => (
               <div key={name}>
-                <label className="block text-md text-gray-800 font-medium">{label}</label>
+                <label className="block text-md text-[#3c0a4a] font-medium">{label}</label>
                 <input
                   type={type}
                   name={name}
                   value={formData[name as keyof typeof formData]}
                   onChange={handleInputChange}
-                  className="w-full p-2 mt-1 border rounded-md"
+                  className="w-full p-2 mt-1 border border-[#009ca6] rounded-md focus:outline-none focus:ring-2 focus:ring-[#803d7c]"
                 />
               </div>
             ))}
           </div>
 
-          <h3 className="text-lg font-semibold mt-6 mb-2">Cláusulas</h3>
+          <h3 className="text-lg font-semibold mt-6 mb-2 text-[#009ca6]">Cláusulas</h3>
           {clauses.map((clause, index) => (
             <div key={index} className="flex items-start gap-2 mb-2">
               {editingIndex === index ? (
                 <>
                   <textarea
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border border-[#009ca6] rounded-md focus:ring-[#803d7c]"
                     value={newClause}
                     onChange={(e) => setNewClause(e.target.value)}
                   />
-                  <button onClick={handleSaveClause} className="text-md text-blue-600">Salvar</button>
+                  <button onClick={handleSaveClause} className="text-md text-[#803d7c] font-medium">Salvar</button>
                 </>
               ) : (
                 <>
                   <p className="flex-1 bg-gray-200 p-2 text-md">{clause}</p>
                   <button onClick={() => handleEditClause(index)}>
-                    <Pencil className="w-4 h-4 text-blue-500" />
+                    <Pencil className="w-4 h-4 text-[#803d7c]" />
                   </button>
                   <button onClick={() => handleDeleteClause(index)}>
                     <Trash2 className="w-4 h-4 text-red-500" />
@@ -214,33 +222,37 @@ Data: ${date}`;
 
           <div className="flex gap-2 mb-2 mt-3">
             <input
-              className="flex-1 p-2 border rounded-md"
+              className="flex-1 p-2 border border-[#009ca6] rounded-md focus:ring-[#803d7c]"
               placeholder="Nova cláusula"
               value={newClause}
               onChange={(e) => setNewClause(e.target.value)}
             />
-            <button onClick={handleAddClause} className="bg-green-600 text-white p-2 rounded-md">
+            <button
+              onClick={handleAddClause}
+              className="bg-[#009ca6] text-white p-2 rounded-md hover:bg-[#3c0a4a]"
+            >
               <Plus className="w-4 h-4" />
             </button>
           </div>
 
           <button
             onClick={handleGeneratePdf}
-            className=" bg-indigo-600 text-white mt-6 max-w-md p-3 rounded-md hover:bg-indigo-700"
+            className="bg-[#3c0a4a] text-white cursor-pointer mt-6 max-w-md p-3 rounded-md hover:bg-[#803d7c]"
           >
             Baixar PDF
           </button>
         </div>
 
         <div className="bg-white p-6 rounded-xl max-w-1xl shadow-lg overflow-auto h-full">
-          <h2 className="text-xl font-bold text-center mb-4">Prévia do Contrato</h2>
+          <h2 className="text-xl font-bold text-center mb-4 text-[#3c0a4a]">Prévia do Contrato</h2>
           <pre className="whitespace-pre-wrap text-md">{generateContractText()}</pre>
         </div>
       </div>
 
-      <footer className="bg-gray-200 text-center text-md py-3 mt-4">
-        © {new Date().getFullYear()} PetCare. Todos os direitos reservados.
+      <footer className="bg-[#803d7c] text-white text-center text-md py-3 mt-4">
+        © {new Date().getFullYear()} FormaPet. Todos os direitos reservados.
       </footer>
     </div>
   );
+
 }
