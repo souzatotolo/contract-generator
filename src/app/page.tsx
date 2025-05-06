@@ -1,102 +1,245 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState } from "react";
+import { Pencil, Trash2, Plus, ScrollText } from "lucide-react";
+import { PDFDocument, PDFFont, StandardFonts } from "pdf-lib";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [formData, setFormData] = useState({
+    ownerName: "",
+    ownerAddress: "",
+    caregiverName: "TALITA SOBRENOME SOBRENOME",
+    caregiverAddress: "Rua 0, Bairro X",
+    startDate: "",
+    endDate: "",
+    fee: "",
+    currency: "R$",
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const [clauses, setClauses] = useState([
+    "O presente contrato tem como objeto a prestação de serviços de cuidado de pets durante o período de ${startDate} até ${endDate}.",
+    "O valor total pelos serviços prestados será de ${currency} ${fee} , pagos diretamente ao(à) cuidador(a).",
+    "O(a) cuidador(a) compromete-se a cuidar do(s) pet(s) com zelo, seguindo as orientações do(a) contratante, incluindo alimentação, higiene e eventuais medicações.",
+    "Ambas as partes assumem responsabilidade pelas informações prestadas e declaram ciência sobre os termos deste contrato.",
+  ]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [newClause, setNewClause] = useState("");
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditClause = (index: number) => {
+    setEditingIndex(index);
+    setNewClause(clauses[index]);
+  };
+
+  const handleSaveClause = () => {
+    if (editingIndex !== null) {
+      const updated = [...clauses];
+      updated[editingIndex] = newClause;
+      setClauses(updated);
+      setEditingIndex(null);
+      setNewClause("");
+    }
+  };
+
+  const handleDeleteClause = (index: number) => {
+    setClauses(clauses.filter((_, i) => i !== index));
+  };
+
+  const handleAddClause = () => {
+    if (newClause.trim()) {
+      setClauses([...clauses, newClause]);
+      setNewClause("");
+    }
+  };
+
+  const generateContractText = () => {
+    const date = new Date().toLocaleDateString();
+
+    const replacedClauses = clauses
+      .map(
+        (c, i) =>
+          `CLÁUSULA ${i + 1}ª – ${c.replace(
+            /\${(\w+)}/g,
+            (_, key) => formData[key as keyof typeof formData] || ""
+          )}`
+      )
+      .join("\n\n");
+
+    return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE CUIDADOR(A) DE PETS
+  
+CONTRATANTE: ${formData.ownerName}, residente à ${formData.ownerAddress}.
+
+CONTRATADO(A): ${formData.caregiverName}, residente à ${formData.caregiverAddress}.
+
+${replacedClauses}
+
+E por estarem justos e contratados, firmam o presente instrumento.
+
+____________________________________
+${formData.ownerName} – CONTRATANTE
+
+____________________________________
+${formData.caregiverName} – CONTRATADO(A)
+
+Data: ${date}`;
+  };
+
+  const handleGeneratePdf = async () => {
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.CourierBold);
+    const pageSize: [number, number] = [595, 842]; // A4
+    const margin = 50;
+    const fontSize = 12;
+    const lineHeight = 18;
+    const maxWidth = pageSize[0] - margin * 2;
+
+    let page = pdfDoc.addPage(pageSize);
+    let y = page.getHeight() - margin;
+
+    const contractText = generateContractText();
+    const lines = contractText.split("\n");
+
+    const wrapText = (text: string, font: PDFFont, fontSize: number, maxWidth: number) => {
+      const words = text.split(" ");
+      const lines: string[] = [];
+      let currentLine = "";
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+        if (testWidth <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+      return lines;
+    };
+
+    for (const line of lines) {
+      if (line.trim() === "") {
+        y -= lineHeight;
+        continue;
+      }
+
+      const wrappedLines = wrapText(line, font, fontSize, maxWidth);
+      for (const wrappedLine of wrappedLines) {
+        if (y < margin + lineHeight) {
+          page = pdfDoc.addPage(pageSize);
+          y = page.getHeight() - margin;
+        }
+
+        page.drawText(wrappedLine, { x: margin, y, size: fontSize, font });
+        y -= lineHeight;
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Contrato_Cuidadora_Pets.pdf";
+    link.click();
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <header className="bg-white shadow px-10 py-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-cyan-600">FormaPet - Talita</h1>
+      </header>
+
+      <div className="flex items-start px-20 my-10">
+        <h1 className="text-2xl font-bold">Elaborador de Contratos</h1>
+        <ScrollText className="ml-2 text-blue-500" />
+      </div>
+
+      <div className="min-h-screen bg-gray-100 px-[10vw] py-4 grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="bg-white p-6 rounded-xl shadow-lg h-full flex flex-col">
+          <h2 className="text-xl font-bold mb-4">Dados do Contrato</h2>
+          <div className="space-y-3">
+            {[
+              { label: "Nome do Contratante", name: "ownerName" },
+              { label: "Endereço do Contratante", name: "ownerAddress" },
+              { label: "Nome do Cuidador(a)", name: "caregiverName" },
+              { label: "Endereço do Cuidador(a)", name: "caregiverAddress" },
+              { label: "Data de Início", name: "startDate", type: "date" },
+              { label: "Data de Fim", name: "endDate", type: "date" },
+              { label: "Valor do Serviço", name: "fee" },
+            ].map(({ label, name, type = "text" }) => (
+              <div key={name}>
+                <label className="block text-md font-medium">{label}</label>
+                <input
+                  type={type}
+                  name={name}
+                  value={formData[name as keyof typeof formData]}
+                  onChange={handleInputChange}
+                  className="w-full p-2 mt-1 border rounded-md"
+                />
+              </div>
+            ))}
+          </div>
+
+          <h3 className="text-lg font-semibold mt-6 mb-2">Cláusulas</h3>
+          {clauses.map((clause, index) => (
+            <div key={index} className="flex items-start gap-2 mb-2">
+              {editingIndex === index ? (
+                <>
+                  <textarea
+                    className="w-full p-2 border rounded-md"
+                    value={newClause}
+                    onChange={(e) => setNewClause(e.target.value)}
+                  />
+                  <button onClick={handleSaveClause} className="text-md text-blue-600">Salvar</button>
+                </>
+              ) : (
+                <>
+                  <p className="flex-1 bg-gray-200 p-2 text-md">{clause}</p>
+                  <button onClick={() => handleEditClause(index)}>
+                    <Pencil className="w-4 h-4 text-blue-500" />
+                  </button>
+                  <button onClick={() => handleDeleteClause(index)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+
+          <div className="flex gap-2 mb-2 mt-3">
+            <input
+              className="flex-1 p-2 border rounded-md"
+              placeholder="Nova cláusula"
+              value={newClause}
+              onChange={(e) => setNewClause(e.target.value)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <button onClick={handleAddClause} className="bg-green-600 text-white p-2 rounded-md">
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={handleGeneratePdf}
+            className=" bg-indigo-600 text-white mt-6 max-w-md p-3 rounded-md hover:bg-indigo-700"
           >
-            Read our docs
-          </a>
+            Baixar PDF
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+        <div className="bg-white p-6 rounded-xl max-w-1xl shadow-lg overflow-auto h-full">
+          <h2 className="text-xl font-bold text-center mb-4">Prévia do Contrato</h2>
+          <pre className="whitespace-pre-wrap text-md">{generateContractText()}</pre>
+        </div>
+      </div>
+
+      <footer className="bg-gray-200 text-center text-md py-3 mt-4">
+        © {new Date().getFullYear()} PetCare. Todos os direitos reservados.
       </footer>
     </div>
   );
